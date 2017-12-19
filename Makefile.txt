@@ -1,0 +1,7 @@
+
+client:
+	gcc echoclient.c -o echo
+	gcc echoserver.c -o echos
+
+clean:
+	-rm -f *.o

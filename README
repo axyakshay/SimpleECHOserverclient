@@ -1,0 +1,31 @@
+Readme file for ECEN 602 Network Programming Assignment 1 
+Team 21
+Team Members: Akshay Gajanan Hasyagar, Karthikeyan Kathiresan
+
+The assignment included implementation of a client and server for a simple TCP echo service. 
+The server part of the code was written by Akshay and the client part of the code was written by Karthikeyan.
+
+TCP Echo Server and Client 
+							
+
+The steps for establishing a TCP socket on the client side are as follows:
+•	Make a socket using the socket() function;
+•	Link the socket to the address of the server using the connect() function;
+•	Send and receive data by way of the readline() and writen() functions.
+•	Close the connection by means of the close() function.
+The steps involved in establishing a TCP socket on the server side are as follows:
+•	Make a socket with the socket() function;
+•	Bind the socket to an address using the bind() function;
+•	Listen for connections with the listen() function;
+•	Accept a connection with the accept() function system call. This call typically blocks until a client connects with the server.
+•	Send & receive data by way of writen() and read().
+•	Close the connection by means of the close() function.
+							
+Client : echoclient.c includes functions -  bufferread ( reads a buffer of data and returns one character per function call ), 
+readline ( readline reads a line of text from the socket and returns the no of bytes read and returns -1 when there is an error) 
+writen ( writes n bytes to a socket and returns the number of bytes written or a -1 on error) fgets( to read a buffer of data from 
+std input from the user) fputs ( writing a buffer of data to the std output) 
+
+Server : echoserver.c includes functions - writen (writes n bytes to a socket and returns the number of bytes written or a -1 on error),
+fork(under main, supports multiple simpultanious connections)it also includes read and writen.
+We display the child PID when it's created and terminated.

@@ -1,0 +1,121 @@
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+
+
+#define MAXLINE 8192 //maximum text length
+
+int writen(int socketfd, const void *buffer, size_t n) // Write n bytes to a descriptor and returns n if successful
+{
+	const char *buffer_ptr = buffer;
+	size_t bytesleft = n;
+     	size_t byteswritten;	
+
+    	while (bytesleft> 0) {             //Still bytes left to read
+		byteswritten = write(socketfd, buffer_ptr, bytesleft);
+          	if (byteswritten <= 0) {     //if bytes written is not a positive number
+           		if ((errno == EINTR) && (byteswritten<0))
+                  		byteswritten = 0; //EINTR error. Slow system call.while loop continues
+             		else
+                		return (-1);   //other errors. return -1.
+          	}
+		
+		buffer_ptr+= byteswritten;  //buffer pointer is moved by the bytes written
+          	bytesleft -= byteswritten;  //Bytes left are decremented by the bytes written
+          	
+     	}
+    	return (n);
+}
+
+
+
+int main (int argc, char **argv)
+{
+	int servsockfd, connfd, n;
+ 	pid_t recvpid;
+ 	char bufferserver[MAXLINE];
+	struct sockaddr_in servaddr;
+
+ 	//Validating the inputs
+
+ 	if (argc!=2){
+		fprintf(stderr , "expected inputs  %s <port> \n", argv[0]);
+		exit(0);
+	}
+ 	int servportnum=atoi(argv[1]);
+
+        //Creating socket
+ 	servsockfd= socket (AF_INET, SOCK_STREAM, 0);
+	if (servsockfd <0) {
+ 	 perror("Error: Couldn't create the socket");
+ 	 exit(1);
+ 	}
+
+	//Enabling socket reuse
+ 	int enable=1;
+	if (setsockopt(servsockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))<0){
+    		perror("setsockopt failed \n");
+   		exit(1);
+	}
+
+ 	//preparing the socket address
+ 	servaddr.sin_family = AF_INET;
+ 	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	servaddr.sin_port = htons(servportnum);
+
+ 	//binding the socket
+	if(bind (servsockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) <0)
+  		{perror("Error: Couldnt bind to the socket");
+   		exit(1);
+   	}
+
+	//Makes the socket passive
+ 	if(listen (servsockfd, 10)<0)
+   		{perror("Error: Listening to socket");
+   		exit(1);
+   		}
+
+ 	printf("Server started running \n");
+
+ 	while(1){ //To run the server until it quits
+                
+		connfd = accept (servsockfd, (struct sockaddr *) NULL, NULL) ;
+  		printf("Received client request \n");
+
+  		if ( (recvpid = fork ()) == 0 ) {//To detect Child process, since its PID=0
+   			printf ("Parent %d creates %d child for a client request\n", getppid(),getpid());
+			
+			//listening socket closed since connfd becomes active
+    			close (servsockfd);
+        
+		//reading from the client
+
+    		while ( (n = read(connfd, bufferserver, MAXLINE)) > 0)  { //to repeatedly read messages from the client
+     			printf("Echoing the received message to client:");
+     			fputs((const char*)bufferserver, stdout);
+     			int l = writen(connfd, bufferserver, n);
+      			if (l < 0){
+       				perror("ERROR writing to socket");
+				}
+     			bzero(bufferserver, MAXLINE);
+    			}
+
+		if(n < 0)  //error
+      			printf("%s\n", "Couldn't read");
+
+		if(n == 0) //client issues EOF.TCP FIN packet sent.Server reads 0 char. Child killed
+    			printf ("Child with %ld exited \n", (long)getpid());
+
+     		exit(0);
+  		}
+        //closing the socket of the server
+  	close(connfd);
+ 	}
+}
+
